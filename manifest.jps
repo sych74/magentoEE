@@ -10,21 +10,8 @@
     ],
     "logo": "https://raw.githubusercontent.com/jelastic-jps/magento-cluster/master/images/magento_70x70.png",
     "name": "Auto-Scalable Magento 2.x Cluster",
-    "settings": {
-        "fields": {
-            "name": "magento_version",
-            "caption": "Magento version",
-            "type": "list",
-            "values": {
-                "https://www.dropbox.com/s/tyfa58jwa6w3n3w/Magento-CE-2.2.0.tar.gz?dl=0": "Magento CE 2.2.0",
-                "https://www.dropbox.com/s/36ws835tvp7efrx/Magento-CE-2.1.9.tar.gz?dl=0": "Magento CE 2.1.9",
-                "https://www.dropbox.com/s/eu8bifravqgh0g0/Magento-CE-2.0.16.tar.gz?dl=0": "Magento CE 2.0.16"
-            },
-            "default": "https://www.dropbox.com/s/tyfa58jwa6w3n3w/Magento-CE-2.2.0.tar.gz?dl=0"
-        }
-    },
-    "globals": {
-        "PATH": "https://raw.githubusercontent.com/jelastic-jps/magento/master/magento2-php7-varnish-mysql-redis-memcache-storage",
+        "globals": {
+        "PATH": "https://raw.githubusercontent.com/sych74/magentoEE/master",
         "MAGE_ROOT": "/var/www/webroot/ROOT",
         "DB_USER": "jelastic-${fn.random}",
         "DB_PASS": "${fn.password(20)}",
@@ -37,7 +24,7 @@
         "count": 2,
         "cloudlets": 8,
         "nodeGroup": "cp",
-        "links": ["cache:REDIS", "session:MEMCACHE"],
+        "links": ["rdc:RDC", "rds:RDS"],
         "volumes": ["/var/www/webroot/ROOT", "/mnt"],
         "volumeMounts": {
             "/mnt": {
@@ -51,7 +38,7 @@
             }
         }
     }, {
-        "image": "jelastic/nginxphp:1.10.1-php-7.0.21",
+        "image": "jelastic/storage",
         "cloudlets": 8,
         "nodeGroup": "admin",
         "volumes": ["/var/www/webroot/ROOT"],
