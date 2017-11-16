@@ -9,8 +9,8 @@
         "apps/clusters"
     ],
     "logo": "https://raw.githubusercontent.com/jelastic-jps/magento-cluster/master/images/magento_70x70.png",
-    "name": "Auto-Scalable Magento 2.x Cluster",
-        "globals": {
+    "name": "Auto-Scalable Magento EE Cluster",
+    "globals": {
         "PATH": "https://raw.githubusercontent.com/sych74/magentoEE/master",
         "MAGE_ROOT": "/var/www/webroot/ROOT",
         "DB_USER": "jelastic-${fn.random}",
@@ -33,16 +33,15 @@
             },
             "/var/www/webroot/ROOT": {
                 "readOnly": false,
-                "sourcePath": "/var/www/webroot/ROOT",
-                "sourceNodeGroup": "admin"
+                "sourcePath": "/data",
+                "sourceNodeGroup": "storage"
             }
         }
     }, {
         "image": "jelastic/storage",
         "cloudlets": 8,
-        "nodeGroup": "admin",
-        "volumes": ["/var/www/webroot/ROOT"],
-        "displayName": "AdminNode"
+        "nodeGroup": "storage",
+        "displayName": "Storage"
     }, {
         "image": "jelastic/mysql:5.7-latest",
         "count": 2,
@@ -63,13 +62,13 @@
     }, {
         "image": "devbeta/redis:3.2.9",
         "cloudlets": 8,
-        "nodeGroup": "cache",
-        "displayName": "Cache storage"
+        "nodeGroup": "rdc",
+        "displayName": "Cache"
     }, {
-        "image": "jelastic/memcached:1.4.24",
+        "image": "devbeta/redis:3.2.9",
         "cloudlets": 8,
-        "nodeGroup": "session",
-        "displayName": "Session storage"
+        "nodeGroup": "rds",
+        "displayName": "Session"
     }],
     "onAfterScaleOut[nodeGroup:cp]": {
         "forEach(event.response.nodes)": {
@@ -97,10 +96,6 @@
         }
     },
     "onInstall": [{
-        "log": "Auto Scaling Triggers"
-    }, {
-        "script": "https://raw.githubusercontent.com/jelastic-jps/magento-cluster/master/scripts/addTriggers.js"
-    }, {
         "log": "Artefacts downloading"
     }, {
         "cmd[${nodes.bl.first.id}]": [
@@ -111,8 +106,7 @@
         "cmd[${nodes.cp.first.id}]": [
             "wget ${globals.PATH}/configs/nginx/nginx.conf -O /mnt/nginx.conf",
             "wget ${globals.PATH}/configs/nginx/default.conf -O /mnt/default.conf",
-            "wget ${globals.PATH}/configs/php/extensions.ini -O /mnt/extensions.ini",
-            "wget ${globals.PATH}/configs/php/memcache.ini -O /mnt/memcache.ini"
+            "wget ${globals.PATH}/configs/php/extensions.ini -O /mnt/extensions.ini"
         ]
     }, {
         "log": "DB Cluster Setup"
@@ -143,26 +137,12 @@
         }
     }, {
         "setEnvs": {
-            "filter": "admin"
+            "filter": "storage"
         }
     }, {
         "cmd[session]": "chkconfig memcached on && service memcached restart"
     }, {
         "log": "Downloading, Unpacking, Installation and Patching Magento"
-    }, {
-        "cmd[admin]": [
-            "mkdir -p /etc/nginx/sites-enabled && wget ${globals.PATH}/configs/nginx/nginx.conf -O /etc/nginx/nginx.conf && wget ${globals.PATH}/configs/nginx/default.conf -O /etc/nginx/sites-enabled/default.conf",
-            "wget ${globals.PATH}/configs/php/extensions.ini -O /etc/php.d/extensions.ini",
-            "rm -rf ${globals.MAGE_ROOT}/* && wget -qO- '${settings.magento_version}' | tar xz -C ${globals.MAGE_ROOT}",
-            "wget ${globals.PATH}/configs/varnish/varnish-probe.php -O ${globals.MAGE_ROOT}/pub/varnish-probe.php",
-            "wget ${globals.PATH}/scripts/setupMG2.sh -O /tmp/setupMG2.sh && bash -x /tmp/setupMG2.sh ${globals.DB_USER} ${globals.DB_PASS} DB_MASTER ${globals.DB_NAME} ${globals.ADMIN_PASSWD} ${globals.MAGE_ROOT} ${env.url} ${user.email} &>> /var/log/run.log",
-            "wget ${globals.PATH}/configs/php/memcache.ini -O /etc/php.d/memcache.ini",
-            "wget ${globals.PATH}/configs/magento/env.php -O ${globals.MAGE_ROOT}/app/etc/env.php",
-            "sed -ri 's|_DBNAME_|${globals.DB_NAME}|g' ${globals.MAGE_ROOT}/app/etc/env.php",
-            "sed -ri 's|_DBUSER_|${globals.DB_USER}|g' ${globals.MAGE_ROOT}/app/etc/env.php",
-            "sed -ri 's|_DBPASS_|${globals.DB_PASS}|g' ${globals.MAGE_ROOT}/app/etc/env.php",
-            "service nginx restart"
-        ]
     }],
     "actions": {
         "setEnvs": {
@@ -178,7 +158,7 @@
         "setupCPNode": [{
             "cmd[${this.filter}]": [
                 "mkdir -p /etc/nginx/sites-enabled && cp /mnt/nginx.conf /etc/nginx/nginx.conf && cp /mnt/default.conf /etc/nginx/sites-enabled/default.conf",
-                "cp /mnt/extensions.ini /etc/php.d/extensions.ini && cp /mnt/memcache.ini /etc/php.d/memcache.ini",
+                "cp /mnt/extensions.ini /etc/php.d/extensions.ini",
                 "service nginx restart"
             ]
         }, {
